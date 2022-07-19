@@ -13,7 +13,7 @@
 
     持久化 红包保存(LuckyMoney)、抢红包结果保存(LuckyDog)、红包失效通知(尚未实现)实现com.godk.luckymoney.storage.PersistenceManager
     缓存  红包数据缓存      com.godk.luckymoney.storage.CacheManager
-    锁   保证金额扣减原子性
+    锁   保证金额扣减原子性   com.godk.luckymoney.storage.LockHandler
     前置方法  用户创建红包时调用   com.godk.luckymoney.handler.PreProcessingHandler
     后置方法  用户抢到红包时调用   com.godk.luckymoney.handler.PostProcessingHandler
 
