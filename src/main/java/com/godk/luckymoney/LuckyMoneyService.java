@@ -2,6 +2,7 @@ package com.godk.luckymoney;
 
 import com.godk.luckymoney.vo.LuckyDog;
 import com.godk.luckymoney.vo.LuckyMoney;
+import com.godk.luckymoney.vo.LuckyMoneyVo;
 
 import java.math.BigDecimal;
 
@@ -14,32 +15,36 @@ public interface LuckyMoneyService {
 
     /**
      * 创建红包
-     * @param totalMoney 总金额
-     * @param totalSize  红包个数
-     * @param username  创建人
+     *
+     * @param totalMoney    总金额
+     * @param totalSize     红包个数
+     * @param username      创建人
      * @param effectiveTime 有效时间（毫秒）
      * @return
      */
-     LuckyMoney create(BigDecimal totalMoney, int totalSize, String username, long effectiveTime);
+    LuckyMoney create(BigDecimal totalMoney, int totalSize, String username, long effectiveTime);
 
     /**
-     *  红包是否还有剩余、有效期内
-     * @param id  红包ID
-     * @see LuckyMoney#luckyMoneyId
+     * 红包是否还有剩余、有效期内
+     *
+     * @param id 红包ID
      * @return
+     * @see LuckyMoney#luckyMoneyId
      */
-     boolean exist(String id,String username);
+    boolean exist(String id, String username);
 
     /**
-     *   红包结果
+     * 红包结果
+     *
      * @param id
      * @return
      */
-    LuckyMoney result(String id);
+    LuckyMoneyVo result(String id);
 
     /**
      * 抢红包
-     * @param id 红包ID
+     *
+     * @param id       红包ID
      * @param username 用户ID
      * @return
      */

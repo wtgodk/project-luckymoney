@@ -1,7 +1,5 @@
 package com.godk.luckymoney.vo;
 
-import com.godk.luckymoney.vo.LuckyMoney;
-
 import java.math.BigDecimal;
 
 /**
@@ -21,11 +19,11 @@ public class LuckyMoneyCacheVO {
     }
 
     /**
-     *  原始红包对象
+     * 原始红包对象
      */
-    private LuckyMoney  luckyMoney;
+    private LuckyMoney luckyMoney;
     /**
-     *  当前余额
+     * 当前余额
      */
     private BigDecimal lastMoney;
     /**
@@ -34,13 +32,12 @@ public class LuckyMoneyCacheVO {
     private int lastSize;
 
     /**
-     *  金额扣减
+     * 金额扣减
      */
-    public void subtract(BigDecimal money){
+    public void subtract(BigDecimal money) {
         lastSize--;
         this.lastMoney = lastMoney.subtract(money);
     }
-
 
 
     public LuckyMoney getLuckyMoney() {

@@ -16,22 +16,22 @@ public class LuckyDog {
     private String fromUsername;
 
     /**
-     *  用户名
+     * 用户名
      */
     private String username;
 
     /**
-     *  nickName
+     * nickName
      */
     private String nickName;
 
     /**
-     *  红包金额
+     * 红包金额
      */
     private BigDecimal money;
 
     /**
-     *  抢到时间
+     * 抢到时间
      */
     private Date getTime;
     /**

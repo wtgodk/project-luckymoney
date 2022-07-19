@@ -12,6 +12,6 @@ public class DefaultUniqueIdGenerator implements UniqueIdGenerator {
 
     @Override
     public String genUniqueId() {
-        return UUID.randomUUID().toString().replace("-","").substring(0,32);
+        return UUID.randomUUID().toString().replace("-", "").substring(0, 32);
     }
 }

@@ -10,16 +10,18 @@ public interface CacheManager<T> {
 
 
     /**
-     *  增加/更新 带有过期时间
-     * @param key key
-     * @param value value
+     * 增加/更新 带有过期时间
+     *
+     * @param key           key
+     * @param value         value
      * @param effectiveTime 有效时间(毫秒)
      * @return
      */
     T put(String key, T value, long effectiveTime);
 
     /**
-     *  获取value
+     * 获取value
+     *
      * @param key
      * @return
      */

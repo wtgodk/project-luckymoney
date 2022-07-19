@@ -5,7 +5,7 @@ package com.godk.luckymoney.exception;
  * @project project-luckymoney
  * @date 2022/7/18 17:27
  */
-public class LuckMoneyEmptyException extends RuntimeException{
+public class LuckMoneyEmptyException extends RuntimeException {
 
 
     public LuckMoneyEmptyException(String message) {

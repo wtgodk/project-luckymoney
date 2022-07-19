@@ -7,9 +7,10 @@ package com.godk.luckymoney.handler;
  */
 public interface ProcessingHandler<T> {
     /**
-     *  流程处理器
+     * 流程处理器
+     *
      * @param obj
      */
-    void  handle(T obj);
+    void handle(T obj);
 
 }

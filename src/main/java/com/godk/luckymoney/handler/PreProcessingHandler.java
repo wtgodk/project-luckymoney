@@ -7,11 +7,11 @@ import com.godk.luckymoney.vo.LuckyMoney;
  * @project project-luckymoney
  * @date 2022/7/18 14:19
  */
-public class PreProcessingHandler implements ProcessingHandler<LuckyMoney>{
+public class PreProcessingHandler implements ProcessingHandler<LuckyMoney> {
 
 
     @Override
     public void handle(LuckyMoney obj) {
-        // pre processing when lucky money created call this method
+        // TODO  pre processing when lucky money created call this method
     }
 }

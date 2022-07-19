@@ -1,7 +1,5 @@
 package com.godk.luckymoney.vo;
 
-import com.godk.luckymoney.vo.LuckyDog;
-
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Date;
@@ -15,11 +13,11 @@ import java.util.List;
 public class LuckyMoney {
 
     /**
-     *  红包ID
+     * 红包ID
      */
     private String luckyMoneyId;
     /**
-     *  总金额
+     * 总金额
      */
     private BigDecimal totalMoney;
     /**
@@ -27,11 +25,11 @@ public class LuckyMoney {
      */
     private int totalSize;
     /**
-     *  失效时间
+     * 失效时间
      */
     private Date failureTime;
     /**
-     *  创建人
+     * 创建人
      */
     private String createdBy;
     /**
@@ -40,37 +38,37 @@ public class LuckyMoney {
     private Date createdTime;
 
     /**
-     *  已抢红包列表
+     * 已抢红包列表
      */
-    private List<LuckyDog> luckDogs = new ArrayList<>();
+    private List<LuckyDog> luckyDogs = new ArrayList<>();
 
 
-    public LuckyDog luckly(BigDecimal money,String username,String nickName){
-        LuckyDog  luckyDog = new LuckyDog();
+    public LuckyDog luckly(BigDecimal money, String username, String nickName) {
+        LuckyDog luckyDog = new LuckyDog();
         luckyDog.setGetTime(new Date());
         luckyDog.setMoney(money);
         luckyDog.setNickName(nickName);
         luckyDog.setUsername(username);
         luckyDog.setFromUsername(this.createdBy);
-        luckDogs.add(luckyDog);
+        luckyDogs.add(luckyDog);
         return luckyDog;
     }
 
     /**
-     *  手气最佳处理
+     * 手气最佳处理
      */
-    public void bestLucky(){
+    public void bestLucky() {
         BigDecimal maxVal = new BigDecimal("-1");
         LuckyDog tmp = null;
-        for(int i= luckDogs.size()-1;i>=0;i--){
-            LuckyDog luckyDog = luckDogs.get(i);
+        for (int i = luckyDogs.size() - 1; i >= 0; i--) {
+            LuckyDog luckyDog = luckyDogs.get(i);
             BigDecimal money = luckyDog.getMoney();
-            if(money.compareTo(maxVal) >=0){
+            if (money.compareTo(maxVal) >= 0) {
                 tmp = luckyDog;
                 maxVal = luckyDog.getMoney();
             }
         }
-        if(tmp==null){
+        if (tmp == null) {
             //理论上不会出现该异常
             throw new RuntimeException();
         }
@@ -78,17 +76,18 @@ public class LuckyMoney {
     }
 
     /**
-     *  重复抢红包校验
+     * 重复抢红包校验
+     *
      * @param username
      * @return
      */
-    public LuckyDog repeatCheck(String username){
-        if(luckDogs.size() ==0){
+    public LuckyDog repeatCheck(String username) {
+        if (luckyDogs.size() == 0) {
             return null;
         }
-        for (LuckyDog luckDog : luckDogs) {
-            if(username.equals(luckDog.getUsername())){
-                return luckDog;
+        for (LuckyDog luckyDog : luckyDogs) {
+            if (username.equals(luckyDog.getUsername())) {
+                return luckyDog;
             }
         }
         return null;
@@ -142,11 +141,11 @@ public class LuckyMoney {
         this.createdTime = createdTime;
     }
 
-    public List<LuckyDog> getLuckDogs() {
-        return luckDogs;
+    public List<LuckyDog> getLuckyDogs() {
+        return luckyDogs;
     }
 
-    public void setLuckDogs(List<LuckyDog> luckDogs) {
-        this.luckDogs = luckDogs;
+    public void setLuckyDogs(List<LuckyDog> luckyDogs) {
+        this.luckyDogs = luckyDogs;
     }
 }

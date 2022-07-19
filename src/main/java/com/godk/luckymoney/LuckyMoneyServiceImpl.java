@@ -13,6 +13,7 @@ import com.godk.luckymoney.storage.PersistenceManager;
 import com.godk.luckymoney.vo.LuckyDog;
 import com.godk.luckymoney.vo.LuckyMoney;
 import com.godk.luckymoney.vo.LuckyMoneyCacheVO;
+import com.godk.luckymoney.vo.LuckyMoneyVo;
 import lombok.extern.slf4j.Slf4j;
 
 import java.math.BigDecimal;
@@ -33,17 +34,17 @@ public class LuckyMoneyServiceImpl implements LuckyMoneyService {
      */
     private final long CACHE_DELAY_TIME = 1000 * 60 * 60 * 24;
     /**
-     *  锁过期时间
-     *   10分钟
+     * 锁过期时间
+     * 10分钟
      */
     private final long LOCK_EXPIRE = 1000 * 60 * 10;
 
     /**
-     *  红包抢购锁前缀
+     * 红包抢购锁前缀
      */
     private final String LOCK_KEY_PRE = "LUCKY_MONEY_LOCK_";
     /**
-     *  锁获取自旋次数
+     * 锁获取自旋次数
      */
     private final int CAS_NUMBER = 10;
     /**
@@ -69,7 +70,7 @@ public class LuckyMoneyServiceImpl implements LuckyMoneyService {
      */
     private UniqueIdGenerator uniqueIdGenerator;
     /**
-     *  锁
+     * 锁
      */
     private LockHandler lockHandler;
 
@@ -119,7 +120,7 @@ public class LuckyMoneyServiceImpl implements LuckyMoneyService {
         luckyMoney.setTotalSize(totalSize);
         log.info("[CREATE] 红包对象构建结束:{}", JSON.toJSONString(luckyMoney));
         //3、持久化存储
-        persistenceManager.save(luckyMoney);
+        persistenceManager.saveLuckyMoney(luckyMoney);
         log.info("[CREATE] 红包对象持久化结束:{}", JSON.toJSONString(luckyMoney));
         //4、缓存对象构建、存储
         LuckyMoneyCacheVO luckyMoneyCacheVO = new LuckyMoneyCacheVO(luckyMoney);
@@ -132,13 +133,19 @@ public class LuckyMoneyServiceImpl implements LuckyMoneyService {
     }
 
     @Override
-    public boolean exist(String id,String username) {
-        log.info("[exist] 检验红包是否有效(抢光/过期/抢过):[id,username]->[{},{}]", id);
+    public boolean exist(String id, String username) {
+        log.info("[exist] 检验红包是否有效(抢光/过期/抢过):[id,username]->[{},{}]", id, username);
         //1、 红包是否过期
         LuckyMoneyCacheVO luckyMoneyCacheVO = cacheManager.get(id);
         if (luckyMoneyCacheVO == null) {
             log.info("[exist] 红包已过期失效:[缓存已清除]");
-            return false;
+            try {
+                luckyMoneyCacheVO = getFromDB(id);
+            } catch (LuckMoneyNotFoundException e) {
+                log.info("[exist] 红包未找到失效:[持久化不存在]");
+                return false;
+
+            }
         }
         Date failureTime = luckyMoneyCacheVO.getLuckyMoney().getFailureTime();
         if (failureTime.getTime() < System.currentTimeMillis()) {
@@ -160,15 +167,14 @@ public class LuckyMoneyServiceImpl implements LuckyMoneyService {
     }
 
     @Override
-    public LuckyMoney result(String id) {
+    public LuckyMoneyVo result(String id) {
         log.info("[result] 查询抢红包结果列表:{}", id);
         LuckyMoneyCacheVO luckyMoneyCacheVO = cacheManager.get(id);
         log.info("[result] 缓存查询抢红包结果列表结果:{}", luckyMoneyCacheVO);
         if (luckyMoneyCacheVO == null) {
             log.info("[result] 缓存红包已过期,使用持久化数据");
             luckyMoneyCacheVO = getFromDB(id);
-            //填充cache,过期时间1天
-            cacheManager.put(id, luckyMoneyCacheVO, CACHE_DELAY_TIME);
+
         }
         LuckyMoney luckyMoney = luckyMoneyCacheVO.getLuckyMoney();
         int lastSize = luckyMoneyCacheVO.getLastSize();
@@ -177,7 +183,8 @@ public class LuckyMoneyServiceImpl implements LuckyMoneyService {
             luckyMoney.bestLucky();
         }
         log.info("[result] 获取抢红包结果列表：{}", JSON.toJSONString(luckyMoney));
-        return luckyMoney;
+        LuckyMoneyVo luckyMoneyVo = new LuckyMoneyVo(luckyMoneyCacheVO.getLuckyMoney(), luckyMoneyCacheVO.getLastMoney(), luckyMoneyCacheVO.getLastSize());
+        return luckyMoneyVo;
     }
 
 
@@ -185,20 +192,20 @@ public class LuckyMoneyServiceImpl implements LuckyMoneyService {
     public LuckyDog get(String id, String username) {
         log.info("[get] 抢红包:[id,username]->[{},{}]", id, username);
         String uuid = UUID.randomUUID().toString().substring(32);
-        String key  = LOCK_KEY_PRE + id;
+        String key = LOCK_KEY_PRE + id;
         try {
             //1、CAS获取锁
             boolean lock = lockHandler.lock(key, uuid, LOCK_EXPIRE);
             int count = 0;
-            while(!lock && count < CAS_NUMBER){
+            while (!lock && count < CAS_NUMBER) {
                 count++;
-                lock =   lockHandler.lock(key,uuid,LOCK_EXPIRE);
+                lock = lockHandler.lock(key, uuid, LOCK_EXPIRE);
             }
-            if(!lock){
+            if (!lock) {
                 throw new BusyException("有序排队哈~");
             }
             //2、确保红包还可抢
-            boolean exist = exist(id,username);
+            boolean exist = exist(id, username);
             if (!exist) {
                 log.warn("[get] 红包已经失效:{}", id);
                 //红包已经失效
@@ -212,8 +219,9 @@ public class LuckyMoneyServiceImpl implements LuckyMoneyService {
             //5、红包列表更新
             LuckyDog dog = luckyMoney.luckly(lottery, username, null);
             //6、 持久化处理
-            persistenceManager.update(luckyMoney);
-            persistenceManager.save(dog);
+            LuckyMoneyVo luckyMoneyVo = new LuckyMoneyVo(luckyMoney, luckyMoneyCacheVO.getLastMoney(), luckyMoneyCacheVO.getLastSize());
+            persistenceManager.updateLuckMoney(luckyMoneyVo);
+            persistenceManager.saveLuckDog(dog);
             //7、缓存更新,缓存过期时间点不变
             long time = luckyMoneyCacheVO.getLuckyMoney().getCreatedTime().getTime();
             long currentTimeMillis = System.currentTimeMillis();
@@ -224,7 +232,7 @@ public class LuckyMoneyServiceImpl implements LuckyMoneyService {
         } finally {
             //9、锁释放
             String value = lockHandler.get(key);
-            if(value!=null && value.equals(uuid)){
+            if (value != null && value.equals(uuid)) {
                 lockHandler.unlock(key);
             }
         }
@@ -249,7 +257,7 @@ public class LuckyMoneyServiceImpl implements LuckyMoneyService {
         BigDecimal min = new BigDecimal("0.01");
         BigDecimal max = lastMoney.divide(new BigDecimal(lastSize + ""), 6, RoundingMode.HALF_UP).multiply(new BigDecimal(2));
         BigDecimal money = new BigDecimal(r.nextDouble() + "").multiply(max);
-        money = money.setScale(2,RoundingMode.HALF_UP);
+        money = money.setScale(2, RoundingMode.HALF_UP);
         money = money.compareTo(min) <= 0 ? min : money;
         luckyMoney.subtract(money);
         return money;
@@ -263,8 +271,18 @@ public class LuckyMoneyServiceImpl implements LuckyMoneyService {
      */
     private LuckyMoneyCacheVO getFromDB(String id) {
         log.info("[getFromDB] 持久化获取红包:{}", id);
-        //TODO 从数据库获取
-        String format = String.format("红包未找到[%s]", id);
-        throw new LuckMoneyNotFoundException(format);
+        // 从数据库获取
+        LuckyMoneyVo luckyMoneyVo = persistenceManager.get(id);
+        if (luckyMoneyVo == null) {
+            String format = String.format("红包未找到[%s]", id);
+            throw new LuckMoneyNotFoundException(format);
+        }
+        LuckyMoneyCacheVO luckyMoneyCacheVO = new LuckyMoneyCacheVO();
+        luckyMoneyCacheVO.setLuckyMoney(luckyMoneyVo.getLuckyMoney());
+        luckyMoneyCacheVO.setLastMoney(luckyMoneyVo.getLastMoney());
+        luckyMoneyCacheVO.setLastSize(luckyMoneyVo.getLastSize());
+        //填充cache,过期时间1天
+        cacheManager.put(id, luckyMoneyCacheVO, CACHE_DELAY_TIME);
+        return luckyMoneyCacheVO;
     }
 }
