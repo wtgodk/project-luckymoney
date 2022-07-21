@@ -2,8 +2,10 @@ package com.godk.luckymoney;
 
 import com.alibaba.fastjson.JSON;
 import com.godk.luckymoney.generator.DefaultUniqueIdGenerator;
+import com.godk.luckymoney.handler.ExpireProcessingHandler;
 import com.godk.luckymoney.handler.PostProcessingHandler;
 import com.godk.luckymoney.handler.PreProcessingHandler;
+import com.godk.luckymoney.schedule.ScheduleHandler;
 import com.godk.luckymoney.storage.CacheManager;
 import com.godk.luckymoney.storage.LockHandler;
 import com.godk.luckymoney.storage.PersistenceManager;
@@ -77,6 +79,11 @@ public class Test {
             public void saveLuckDog(LuckyDog luckyDog) {
 
             }
+
+            @Override
+            public LuckyMoneyVo get(String luckMoneyId) {
+                return null;
+            }
         };
 
         LockHandler lockHandler = new LockHandler() {
@@ -102,7 +109,7 @@ public class Test {
                 return cache.get(key);
             }
         };
-        luckyMoneyService = new LuckyMoneyServiceImpl(cacheManager, new PostProcessingHandler(), new PreProcessingHandler(), persistenceManager, new DefaultUniqueIdGenerator(), lockHandler);
+        luckyMoneyService = new LuckyMoneyServiceImpl(cacheManager, new PostProcessingHandler(), new PreProcessingHandler(), new ExpireProcessingHandler(),persistenceManager, new DefaultUniqueIdGenerator(), lockHandler,new ScheduleHandler());
 
 
     }

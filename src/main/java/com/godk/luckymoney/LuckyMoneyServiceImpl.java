@@ -56,6 +56,10 @@ public class LuckyMoneyServiceImpl implements LuckyMoneyService {
      */
     private ProcessingHandler<LuckyDog> postProcessingHandler;
     /**
+     *  红包失效后处理
+     */
+    private ProcessingHandler<LuckyMoneyCacheVO> expireProcessingHandler;
+    /**
      * 前置处理  红包创建时使用
      */
     private ProcessingHandler<LuckyMoney> preProcessingHandler;
@@ -83,16 +87,23 @@ public class LuckyMoneyServiceImpl implements LuckyMoneyService {
      */
     private final int maxLuckyMoneyNumber = 100;
 
+
+    private InvalidListener  invalidListener;
+
     public LuckyMoneyServiceImpl() {
     }
 
-    public LuckyMoneyServiceImpl(CacheManager<LuckyMoneyCacheVO> cacheManager, ProcessingHandler<LuckyDog> postProcessingHandler, ProcessingHandler<LuckyMoney> preProcessingHandler, PersistenceManager persistenceManager, UniqueIdGenerator uniqueIdGenerator, LockHandler lockHandler) {
+    public LuckyMoneyServiceImpl(CacheManager<LuckyMoneyCacheVO> cacheManager, ProcessingHandler<LuckyDog> postProcessingHandler,
+                                 ProcessingHandler<LuckyMoney> preProcessingHandler,  ProcessingHandler<LuckyMoneyCacheVO> expireProcessingHandler,PersistenceManager persistenceManager,
+                                 UniqueIdGenerator uniqueIdGenerator, LockHandler lockHandler,InvalidListener invalidListener) {
         this.cacheManager = cacheManager;
         this.postProcessingHandler = postProcessingHandler;
         this.preProcessingHandler = preProcessingHandler;
+        this.expireProcessingHandler = expireProcessingHandler;
         this.persistenceManager = persistenceManager;
         this.uniqueIdGenerator = uniqueIdGenerator;
         this.lockHandler = lockHandler;
+        this.invalidListener = invalidListener;
     }
 
     @Override
@@ -118,17 +129,31 @@ public class LuckyMoneyServiceImpl implements LuckyMoneyService {
         luckyMoney.setFailureTime(new Date(System.currentTimeMillis() + effectiveTime));
         luckyMoney.setTotalMoney(totalMoney);
         luckyMoney.setTotalSize(totalSize);
+        //3、 前置处理 确认账户有钱？提前锁定金额？
+        preProcessingHandler.handle(luckyMoney);
         log.info("[CREATE] 红包对象构建结束:{}", JSON.toJSONString(luckyMoney));
-        //3、持久化存储
+        //4、持久化存储
         persistenceManager.saveLuckyMoney(luckyMoney);
         log.info("[CREATE] 红包对象持久化结束:{}", JSON.toJSONString(luckyMoney));
-        //4、缓存对象构建、存储
+        //5、缓存对象构建、存储
         LuckyMoneyCacheVO luckyMoneyCacheVO = new LuckyMoneyCacheVO(luckyMoney);
         log.info("[CREATE] 红包缓存对象结束:{}", JSON.toJSONString(luckyMoneyCacheVO));
         long realCacheEffectiveTime = effectiveTime + CACHE_DELAY_TIME;
         log.info("[CREATE] 红包缓存入参:[key,value,effectiveTime]->[{},{},{}]", luckyMoney.getLuckyMoneyId(), luckyMoneyCacheVO, realCacheEffectiveTime);
         cacheManager.put(luckyMoney.getLuckyMoneyId(), luckyMoneyCacheVO, realCacheEffectiveTime);
         log.info("[CREATE] 红包创建完成,返回对象:{}", JSON.toJSONString(luckyMoney));
+        // 6、添加失效监听,红包失效后执行退款操作
+        invalidListener.addTask(luckyMoney.getLuckyMoneyId(), luckyMoney.getFailureTime().getTime(), new Runnable() {
+            @Override
+            public void run() {
+                LuckyMoneyCacheVO cacheVo = cacheManager.get(luckyMoney.getLuckyMoneyId());
+                int lastSize = cacheVo.getLastSize();
+                if(lastSize >0){
+                    // 红包未抢完，执行退款处理
+                    expireProcessingHandler.handle(cacheVo);
+                }
+            }
+        });
         return luckyMoney;
     }
 
